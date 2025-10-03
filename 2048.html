@@ -3,9 +3,15 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <title>2048</title>
+  <title id="pageTitle">2048 - 经典数字拼图游戏</title>
+  <!-- 外部资源引入 -->
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka+One&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Mongolian&display=swap" rel="stylesheet">
+  
+  <!-- 添加网站图标 -->
+  <link rel="icon" href="https://www.google.com/s2/favicons?sz=64&domain=2048game.com" type="image/png">
   
   <!-- Tailwind 配置 -->
   <script>
@@ -22,87 +28,71 @@
               accent2: '#add8e6',
               accent3: '#f0e68c',
               accent4: '#ffd700',
-              accent5: '#ff6b6b',
-              accent6: '#4ecdc4',
-              accent7: '#ff9f1c',
-              accent8: '#7a5cfa',
             },
           },
           fontFamily: {
             game: ['"Fredoka One"', 'cursive', 'sans-serif'],
+            mongolian: ['"Noto Sans Mongolian"', 'Mongolian Baiti', 'sans-serif'],
           },
         },
       }
     }
   </script>
   
-  <!-- 自定义工具类 -->
+  <!-- 核心样式 -->
   <style>
-    @layer utilities {
-      .content-auto {
-        content-visibility: auto;
-      }
-      .acrylic {
-        backdrop-filter: blur(10px);
-        background-color: rgba(255, 255, 255, 0.2);
-      }
-      .dark .acrylic {
-        background-color: rgba(60, 60, 80, 0.2);
-      }
-      .text-shadow {
-        text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
-      }
-      .tile-shadow {
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-      }
-      .settings-scroll-container {
-        scrollbar-width: thin;
-        scrollbar-color: #8e2de2 rgba(255,255,255,0.1);
-        max-height: calc(100% - 4rem);
-        overflow-y: auto;
-        overflow-x: hidden;
-      }
-      .settings-scroll-container::-webkit-scrollbar {
-        width: 6px;
-      }
-      .settings-scroll-container::-webkit-scrollbar-track {
-        background: rgba(255,255,255,0.1);
-        border-radius: 10px;
-      }
-      .settings-scroll-container::-webkit-scrollbar-thumb {
-        background-color: #8e2de2;
-        border-radius: 10px;
-      }
-      .dark .settings-scroll-container::-webkit-scrollbar-track {
-        background: rgba(0,0,0,0.2);
-      }
+    /* 基础重置与全局样式 */
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
     }
-  </style>
-  
-  <link href="https://fonts.googleapis.com/css2?family=Fredoka+One&display=swap" rel="stylesheet">
-  
-  <style>
-    /* 基础样式 */
     body {
       background-color: #f8f5ff;
       background-image: radial-gradient(#d8c5ff 1px, transparent 0);
       background-size: 30px 30px;
       min-height: 100vh;
       font-family: 'Fredoka One', cursive;
-      touch-action: none; /* 禁用默认触摸行为，防止滚动冲突 */
+      touch-action: manipulation; /* 改为 manipulation 防止滚动但允许触摸 */
       transition: background-color 0.3s ease, color 0.3s ease;
-      margin: 0;
-      padding: 0;
     }
-
-    /* 深色模式基础样式 */
     .dark body {
       background-color: #1a1a2e;
       background-image: radial-gradient(#2a2a40 1px, transparent 0);
       color: #eaeaea;
     }
     
-    /* 游戏棋盘 */
+    /* 蒙古语特殊字体支持 */
+    .mongolian-traditional {
+      font-family: 'Noto Sans Mongolian', 'Mongolian Baiti', 'Microsoft PhagsPa', sans-serif;
+      font-size: 1.1em;
+      line-height: 1.4;
+    }
+    
+    /* 游戏状态提示 */
+    .game-status {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      z-index: 50;
+      text-align: center;
+      padding: 1rem;
+      border-radius: 0.75rem;
+      background-color: rgba(142, 45, 226, 0.8);
+      color: white;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s ease, transform 0.3s ease;
+    }
+    .game-status.active {
+      opacity: 1;
+      transform: translate(-50%, -50%) scale(1);
+      pointer-events: all; /* 激活时允许点击 */
+    }
+    
+    /* 游戏棋盘样式 */
     .game-board {
       background-color: rgba(230, 210, 255, 0.7);
       border-radius: 1rem;
@@ -114,16 +104,13 @@
       height: 100%;
       z-index: 10;
     }
-
     .dark .game-board {
       background-color: rgba(44, 44, 84, 0.7);
     }
-    
     .game-board:hover {
       transform: translateY(-8px);
       box-shadow: 0 12px 20px rgba(0, 0, 0, 0.15);
     }
-    
     .game-board::before {
       content: '';
       position: absolute;
@@ -134,12 +121,11 @@
       background: linear-gradient(135deg, rgba(255,255,255,0.3) 0%, rgba(255,255,255,0) 50%, rgba(0,0,0,0.05) 100%);
       z-index: 1;
     }
-
     .dark .game-board::before {
       background: linear-gradient(135deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0) 50%, rgba(0,0,0,0.2) 100%);
     }
     
-    /* 棋盘格子 */
+    /* 棋盘格子样式 */
     .cell {
       position: absolute;
       border-radius: 0.75rem;
@@ -147,14 +133,12 @@
       z-index: 5;
       transition: background-color 0.3s ease;
     }
-
     .dark .cell {
       background-color: rgba(60, 60, 80, 0.3);
     }
     
-    /* 数字方块 */
+    /* 数字方块核心样式 */
     .tile {
-      transition: left 0.2s ease, top 0.2s ease; /* 统一使用left/top过渡，避免transform冲突 */
       position: absolute;
       z-index: 20;
       display: flex;
@@ -162,53 +146,31 @@
       justify-content: center;
       font-weight: bold;
       border-radius: 0.75rem;
+      transition: left 0.2s ease, top 0.2s ease, width 0.2s ease, height 0.2s ease;
       will-change: left, top, opacity;
     }
     
-    /* 方块合并动画 */
+    /* 方块动画效果 */
     .tile-merged {
       animation: tile-merged 0.3s ease-in-out;
       z-index: 30;
     }
+    .new-tile {
+      animation: new-tile 0.3s ease-out;
+    }
     
+    /* 动画关键帧 */
     @keyframes tile-merged {
       0% { transform: scale(1); }
       50% { transform: scale(1.2); box-shadow: 0 0 25px rgba(255, 215, 0, 0.8); }
       100% { transform: scale(1); }
     }
-    
-    /* 新方块动画 - 简化版 */
-    .new-tile {
-      animation: new-tile 0.3s ease-out;
-    }
-    
     @keyframes new-tile {
-      0% { 
-        opacity: 0; 
-        transform: scale(0.8);
-      }
-      100% { 
-        opacity: 1; 
-        transform: scale(1);
-      }
+      0% { opacity: 0; transform: scale(0.8); }
+      100% { opacity: 1; transform: scale(1); }
     }
     
-    /* 方块移动残影效果 */
-    .tile-move {
-      position: absolute;
-      border-radius: 0.75rem;
-      opacity: 0.3;
-      z-index: 15;
-      pointer-events: none;
-      animation: tile-fade 0.3s ease-out forwards;
-    }
-    
-    @keyframes tile-fade {
-      0% { opacity: 0.3; transform: scale(1); }
-      100% { opacity: 0; transform: scale(0.8); }
-    }
-    
-    /* 方块颜色系统 */
+    /* 方块颜色系统（按数值区分） */
     .tile-2 { background-color: rgba(230, 210, 255, 0.9); color: #5a3991; }
     .tile-4 { background-color: rgba(210, 180, 255, 0.9); color: #5a3991; }
     .tile-8 { background-color: rgba(255, 182, 193, 0.9); color: #ffffff; }
@@ -221,8 +183,8 @@
     .tile-1024 { background-color: rgba(255, 215, 0, 1); color: #ffffff; box-shadow: 0 0 25px rgba(255, 215, 0, 0.9); }
     .tile-2048 { background-color: rgba(255, 215, 0, 1); color: #ffffff; box-shadow: 0 0 30px rgba(255, 215, 0, 1); }
     .tile-super { background-color: rgba(128, 0, 128, 0.9); color: #ffffff; box-shadow: 0 0 35px rgba(128, 0, 128, 0.7); }
-
-    /* 深色模式方块颜色 */
+    
+    /* 深色模式方块颜色适配 */
     .dark .tile-2 { background-color: rgba(170, 150, 255, 0.9); color: #e0e0ff; }
     .dark .tile-4 { background-color: rgba(150, 120, 255, 0.9); color: #e0e0ff; }
     .dark .tile-8 { background-color: rgba(255, 150, 160, 0.9); color: #ffffff; }
@@ -236,13 +198,12 @@
     .dark .tile-2048 { background-color: rgba(255, 200, 0, 1); color: #ffffff; box-shadow: 0 0 30px rgba(255, 200, 0, 1.2); }
     .dark .tile-super { background-color: rgba(150, 30, 150, 0.9); color: #ffffff; box-shadow: 0 0 35px rgba(150, 30, 150, 0.8); }
     
-    /* 按钮样式 */
+    /* 按钮交互效果 */
     .btn-hover {
       transition: all 0.2s ease;
       position: relative;
       overflow: hidden;
     }
-    
     .btn-hover::after {
       content: '';
       position: absolute;
@@ -253,33 +214,25 @@
       background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
       transition: all 0.6s ease;
     }
-    
     .btn-hover:hover::after {
       left: 100%;
     }
-    
     .btn-hover:hover {
       transform: translateY(-2px);
       box-shadow: 0 4px 12px rgba(142, 45, 226, 0.3);
     }
-    
     .btn-hover:active {
       transform: translateY(0);
     }
     
     /* 分数变化动画 */
+    .score-change {
+      animation: score-change 0.5s ease-in-out;
+    }
     @keyframes score-change {
       0% { transform: scale(1); color: #8e2de2; }
       50% { transform: scale(1.2); color: #ffd700; }
       100% { transform: scale(1); color: #8e2de2; }
-    }
-    
-    .score-change {
-      animation: score-change 0.5s ease-in-out;
-    }
-    
-    .score-display {
-      transition: all 0.3s ease;
     }
     
     /* 模态框基础样式 */
@@ -295,93 +248,48 @@
       left: 0;
       right: 0;
       bottom: 0;
-      z-index: 1000; /* 提升层级，确保覆盖所有元素 */
+      z-index: 1000;
       opacity: 0;
       visibility: hidden;
       pointer-events: none;
     }
-    
-    /* 模态框激活状态 */
     .modal.active {
       opacity: 1;
       visibility: visible;
       pointer-events: all;
     }
-    
-    /* 模态框内容 - 通用样式 */
     .modal-content {
       background-color: rgba(255, 255, 255, 0.95);
       backdrop-filter: blur(10px);
       transition: transform 0.3s ease, background-color 0.3s ease;
       width: 100%;
-      max-width: var(--board-width, 320px);
+      max-width: 320px;
       max-height: 90vh;
       position: relative;
       border-radius: 1rem;
       transform: scale(0.95);
       overflow: hidden;
     }
-    
     .modal.active .modal-content {
       transform: scale(1);
     }
-
     .dark .modal-content {
       background-color: rgba(30, 30, 50, 0.95);
       color: #eaeaea;
     }
     
-    /* 游戏说明模态框 - 内容自适应高度 */
-    #howToPlayModal .modal-content {
-      aspect-ratio: auto;
-      display: flex;
-      flex-direction: column;
-    }
-    
-    /* 其他模态框 - 保持固定比例 */
-    #settingsModal .modal-content,
-    #gameOverModal .modal-content {
-      aspect-ratio: 1 / 1;
-    }
-    
-    /* 模态框内容区域 - 增加内边距 */
-    .modal-content > div {
-      padding: 1.5rem;
-    }
-    
-    /* 游戏说明内容容器 */
-    .how-to-play-content {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      gap: 1.5rem;
-    }
-    
-    /* 游戏说明按钮区域 */
-    .how-to-play-actions {
-      padding: 1.5rem;
-      border-top: 1px solid rgba(0, 0, 0, 0.05);
-      margin-top: auto;
-    }
-    
-    .dark .how-to-play-actions {
-      border-top: 1px solid rgba(255, 255, 255, 0.05);
-    }
-    
-    /* 主题切换开关 */
+    /* 开关按钮基础样式 */
     .theme-switch {
       position: relative;
       display: inline-block;
       width: 60px;
       height: 34px;
     }
-    
     .theme-switch input {
       opacity: 0;
       width: 0;
       height: 0;
     }
-    
     .slider {
       position: absolute;
       cursor: pointer;
@@ -393,7 +301,6 @@
       transition: .4s;
       border-radius: 34px;
     }
-    
     .slider:before {
       position: absolute;
       content: "";
@@ -405,32 +312,37 @@
       transition: .4s;
       border-radius: 50%;
     }
-    
     input:checked + .slider {
       background-color: #8e2de2;
     }
-    
     input:checked + .slider:before {
       transform: translateX(26px);
     }
-
-    /* 难度滑动条样式 */
-    .difficulty-slider {
+    
+    /* 语言选项按钮动画效果 */
+    .language-option {
+      transition: all 0.2s ease;
+    }
+    .language-option:hover {
+      transform: translateY(-3px) scale(1.05);
+      box-shadow: 0 4px 12px rgba(142, 45, 226, 0.2);
+    }
+    .language-option.active {
+      background-color: #8e2de2;
+      color: white;
+    }
+    
+    /* 游戏难度滑动条样式 */
+    input[type="range"].difficulty-slider {
       -webkit-appearance: none;
       appearance: none;
       width: 100%;
       height: 8px;
       border-radius: 5px;
-      background: #ddd;
+      background: #e0c3fc;
       outline: none;
-      transition: all 0.3s ease;
     }
-
-    .dark .difficulty-slider {
-      background: #3a3a52;
-    }
-
-    .difficulty-slider::-webkit-slider-thumb {
+    input[type="range"].difficulty-slider::-webkit-slider-thumb {
       -webkit-appearance: none;
       appearance: none;
       width: 20px;
@@ -438,22 +350,27 @@
       border-radius: 50%;
       background: #8e2de2;
       cursor: pointer;
-      box-shadow: 0 0 5px rgba(142, 45, 226, 0.5);
       transition: all 0.2s ease;
     }
-
-    .difficulty-slider::-webkit-slider-thumb:hover {
-      transform: scale(1.1);
-      box-shadow: 0 0 8px rgba(142, 45, 226, 0.7);
+    input[type="range"].difficulty-slider::-webkit-slider-thumb:hover {
+      transform: scale(1.2);
+      box-shadow: 0 0 10px rgba(142, 45, 226, 0.6);
     }
-
-    .dark .difficulty-slider::-webkit-slider-thumb {
-      background: #a754ff;
-      box-shadow: 0 0 5px rgba(167, 84, 255, 0.5);
+    input[type="range"].difficulty-slider::-moz-range-thumb {
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: #8e2de2;
+      cursor: pointer;
+      border: none;
+      transition: all 0.2s ease;
     }
-
-    .dark .difficulty-slider::-webkit-slider-thumb:hover {
-      box-shadow: 0 0 8px rgba(167, 84, 255, 0.7);
+    input[type="range"].difficulty-slider::-moz-range-thumb:hover {
+      transform: scale(1.2);
+      box-shadow: 0 0 10px rgba(142, 45, 226, 0.6);
+    }
+    .dark input[type="range"].difficulty-slider {
+      background: #4a00e0;
     }
   </style>
 </head>
@@ -470,15 +387,15 @@
       <div class="flex gap-2">
         <button id="howToPlayBtn" class="acrylic px-4 py-2 rounded-full text-monet-dark font-semibold flex items-center gap-2 hover:bg-white/30 transition-all btn-hover">
           <i class="fa fa-question-circle"></i>
-          <span class="hidden sm:inline">玩法</span>
+          <span class="hidden sm:inline" data-i18n="howToPlay">玩法</span>
         </button>
         <button id="settingsBtn" class="acrylic px-4 py-2 rounded-full text-monet-dark font-semibold flex items-center gap-2 hover:bg-white/30 transition-all btn-hover">
           <i class="fa fa-cog"></i>
-          <span class="hidden sm:inline">设置</span>
+          <span class="hidden sm:inline" data-i18n="settings">设置</span>
         </button>
         <button id="restartBtn" class="acrylic px-4 py-2 rounded-full text-monet-dark font-semibold flex items-center gap-2 hover:bg-white/30 transition-all btn-hover">
           <i class="fa fa-refresh"></i>
-          <span class="hidden sm:inline">重来</span>
+          <span class="hidden sm:inline" data-i18n="restart">重来</span>
         </button>
       </div>
     </div>
@@ -486,48 +403,52 @@
     <!-- 分数面板 -->
     <div class="w-full flex justify-between gap-4 mb-2">
       <div class="acrylic flex-1 p-3 rounded-xl flex flex-col items-center">
-        <div class="text-sm text-monet-dark font-medium">得分</div>
+        <div class="text-sm text-monet-dark font-medium" data-i18n="score">得分</div>
         <div id="score" class="text-2xl font-bold text-monet-dark">0</div>
       </div>
       <div class="acrylic flex-1 p-3 rounded-xl flex flex-col items-center">
-        <div class="text-sm text-monet-dark font-medium">最高分</div>
+        <div class="text-sm text-monet-dark font-medium" data-i18n="bestScore">最高分</div>
         <div id="bestScore" class="text-2xl font-bold text-monet-dark">0</div>
       </div>
     </div>
     
     <!-- 游戏棋盘容器 -->
-    <div id="gameContainer" class="relative w-full aspect-square max-w-md mx-auto">
+    <div id="gameContainer" class="relative w-full aspect-square max-w-md mx-auto" tabindex="0" style="outline: none;">
       <div id="gameBoard" class="game-board">
+        <!-- 游戏状态提示 -->
+        <div id="gameStatus" class="game-status text-xl font-bold">
+          <p id="gameStatusText" class="mb-2"></p>
+          <button id="gameStatusBtn" class="bg-white text-monet px-4 py-2 rounded-full font-bold hover:bg-monet-dark hover:text-white transition-all btn-hover">
+            继续游戏
+          </button>
+        </div>
         <!-- 格子和方块将通过JS动态生成 -->
       </div>
     </div>
     
     <!-- 游戏操作提示 -->
     <div class="w-full text-center mt-4 text-monet-dark/80">
-      <p class="text-sm mb-2">使用 <span class="font-bold">↑ ↓ ← →</span> 或 <span class="font-bold">WASD</span> 移动方块</p>
-      <p class="text-sm">或在触摸屏上 <span class="font-bold">滑动</span> 移动</p>
+      <p class="text-sm mb-2" data-i18n="keyboardHint">使用 <span class="font-bold">↑ ↓ ← →</span> 或 <span class='font-bold'>WASD</span> 移动方块</p>
+      <p class="text-sm" data-i18n="touchHint">或在触摸屏上 <span class='font-bold'>滑动</span> 移动</p>
     </div>
   </div>
   
   <!-- 游戏说明模态框 -->
   <div id="howToPlayModal" class="modal">
     <div class="modal-content">
-      <div class="how-to-play-content">
-        <div class="flex justify-between items-center">
-          <h3 class="text-2xl font-bold text-monet-dark">如何玩2048</h3>
+      <div class="p-6">
+        <div class="flex justify-between items-center mb-4">
+          <h3 class="text-2xl font-bold text-monet-dark" data-i18n="howToPlayTitle">如何玩2048</h3>
           <button id="closeHowToPlayModalBtn" class="text-monet-dark text-xl hover:text-monet">
             <i class="fa fa-times"></i>
           </button>
         </div>
         <div class="space-y-4 text-monet-dark/90">
-          <p>使用方向键或WASD键移动方块，相同数字的方块会合并成为它们的和。</p>
-          <p>每次移动后会随机生成一个新的2或4方块。</p>
-          <p>当方块填满棋盘且无法移动时，游戏结束。</p>
-          <p>尝试创建出2048这个方块!</p>
+          <p data-i18n="howToPlayDesc1">使用方向键或WASD键移动方块，相同数字的方块会合并成为它们的和。</p>
+          <p data-i18n="howToPlayDesc2">每次移动后会随机生成一个新的2或4方块。</p>
+          <p data-i18n="howToPlayDesc3">尝试创造更高的分数！</p>
         </div>
-      </div>
-      <div class="how-to-play-actions">
-        <button id="startPlayingBtn" class="w-full bg-monet text-white py-3 rounded-full font-bold hover:bg-monet-dark transition-all btn-hover">
+        <button id="startPlayingBtn" class="w-full mt-6 bg-monet text-white py-3 rounded-full font-bold hover:bg-monet-dark transition-all btn-hover" data-i18n="startPlaying">
           开始游戏
         </button>
       </div>
@@ -538,26 +459,41 @@
   <div id="settingsModal" class="modal">
     <div class="modal-content rounded-2xl p-6 max-w-md w-full mx-4">
       <div class="flex justify-between items-center mb-4">
-        <h3 class="text-2xl font-bold text-monet-dark">游戏设置</h3>
+        <h3 class="text-2xl font-bold text-monet-dark" data-i18n="settingsTitle">游戏设置</h3>
         <button id="closeSettingsModalBtn" class="text-monet-dark text-xl hover:text-monet">
           <i class="fa fa-times"></i>
         </button>
       </div>
-      <div class="settings-scroll-container overflow-y-auto pb-4">
+      <div class="settings-scroll overflow-y-auto pb-4 max-h-[60vh]">
         <div class="flex flex-col gap-6 min-w-full">
+          <!-- 语言选择选项 -->
+          <div class="p-4 bg-white/50 dark:bg-white/5 rounded-xl">
+            <div class="flex items-center gap-3 mb-3">
+              <i class="fa fa-globe text-2xl text-monet-dark"></i>
+              <span class="text-lg" data-i18n="language">语言 / Language</span>
+            </div>
+            <div class="language-selector flex flex-wrap gap-2">
+              <div class="language-option active px-4 py-2 rounded-full text-center cursor-pointer transition-all" data-lang="zh">中文简体</div>
+              <div class="language-option px-4 py-2 rounded-full text-center cursor-pointer transition-all" data-lang="zh-TW">中文繁體</div>
+              <div class="language-option px-4 py-2 rounded-full text-center cursor-pointer transition-all" data-lang="en">English</div>
+              <div class="language-option px-4 py-2 rounded-full text-center cursor-pointer transition-all" data-lang="ja">日本語</div>
+              <div class="language-option px-4 py-2 rounded-full text-center cursor-pointer transition-all mongolian-traditional" data-lang="mn-Mong" style="font-feature-settings: 'kern' 1, 'liga' 1;">ᠮᠣᠩᠭᠣᠯ</div>
+            </div>
+          </div>
+          
           <!-- 主题切换选项 -->
           <div class="p-4 bg-white/50 dark:bg-white/5 rounded-xl">
             <div class="flex items-center justify-between mb-2">
               <div class="flex items-center gap-3">
                 <i class="fa fa-moon-o text-2xl text-monet-dark"></i>
-                <span class="text-lg">深色模式</span>
+                <span class="text-lg" data-i18n="darkMode">深色模式</span>
               </div>
               <label class="theme-switch">
                 <input type="checkbox" id="themeToggle">
                 <span class="slider"></span>
               </label>
             </div>
-            <p class="text-sm text-monet-dark/80 mt-2">切换游戏的视觉主题。深色模式使用深色背景和高对比度元素，适合夜间或低光环境，可减轻眼睛疲劳。</p>
+            <p class="text-sm text-monet-dark/80 mt-2" data-i18n="darkModeDesc">切换游戏的视觉主题。深色模式使用深色背景和高对比度元素，适合夜间或低光环境，可减轻眼睛疲劳。</p>
           </div>
           
           <!-- 游戏难度滑动条 -->
@@ -565,17 +501,17 @@
             <div class="flex items-center justify-between mb-4">
               <div class="flex items-center gap-3">
                 <i class="fa fa-tachometer text-2xl text-monet-dark"></i>
-                <span class="text-lg">游戏难度</span>
+                <span class="text-lg" data-i18n="difficulty">游戏难度</span>
               </div>
-              <span id="difficultyValue" class="px-3 py-1 bg-monet/20 rounded-full text-sm font-medium">中等</span>
+              <span id="difficultyValue" class="px-3 py-1 bg-monet/20 rounded-full text-sm font-medium" data-i18n="difficultyMedium">中等</span>
             </div>
             <input type="range" min="1" max="3" value="2" class="difficulty-slider" id="difficultySlider">
             <div class="flex justify-between mt-2 text-xs text-monet-dark/70">
-              <span>简单</span>
-              <span>中等</span>
-              <span>困难</span>
+              <span data-i18n="difficultyEasy">简单</span>
+              <span data-i18n="difficultyMedium">中等</span>
+              <span data-i18n="difficultyHard">困难</span>
             </div>
-            <p class="text-sm text-monet-dark/80 mt-3">调整游戏难度会影响初始方块数量和生成新方块的概率。简单模式更容易上手，困难模式更具挑战性。</p>
+            <p class="text-sm text-monet-dark/80 mt-3" data-i18n="difficultyDesc">调整游戏难度会影响初始方块数量和生成新方块的概率。简单模式更容易上手，困难模式更具挑战性。</p>
           </div>
           
           <!-- 关闭动画效果选项 -->
@@ -583,186 +519,470 @@
             <div class="flex items-center justify-between mb-2">
               <div class="flex items-center gap-3">
                 <i class="fa fa-film text-2xl text-monet-dark"></i>
-                <span class="text-lg">关闭动画效果(不推荐)</span>
+                <span class="text-lg" data-i18n="disableAnimations">关闭动画效果</span>
               </div>
               <label class="theme-switch">
                 <input type="checkbox" id="disableAnimationsToggle">
                 <span class="slider"></span>
               </label>
             </div>
-            <p class="text-sm text-monet-dark/80 mt-2">禁用游戏中的所有动画效果，包括方块移动、合并和新方块出现的动画。可能会让游戏运行稍微流畅一些，但会牺牲视觉体验。仅在设备性能较差时考虑开启。</p>
-          </div>
-          
-          <!-- 关闭渲染效果选项 -->
-          <div class="p-4 bg-white/50 dark:bg-white/5 rounded-xl">
-            <div class="flex items-center justify-between mb-2">
-              <div class="flex items-center gap-3">
-                <i class="fa fa-paint-brush text-2xl text-monet-dark"></i>
-                <span class="text-lg">关闭渲染效果(不推荐)</span>
-              </div>
-              <label class="theme-switch">
-                <input type="checkbox" id="disableRenderingToggle">
-                <span class="slider"></span>
-              </label>
-            </div>
-            <p class="text-sm text-monet-dark/80 mt-2">禁用游戏中的高级视觉效果，如方块的阴影和发光效果。这可以简化视觉呈现，可能对某些用户减少视觉干扰。</p>
+            <p class="text-sm text-monet-dark/80 mt-2" data-i18n="disableAnimationsDesc">禁用游戏中的部分动画效果，包括方块移动、合并和新方块出现的动画。会牺牲视觉体验。仅在设备性能较差时考虑开启。</p>
           </div>
         </div>
       </div>
-      <button id="closeSettingsBtn" class="mt-6 w-full bg-monet text-white py-3 rounded-full font-bold hover:bg-monet-dark transition-all btn-hover">
+      <button id="closeSettingsBtn" class="mt-6 w-full bg-monet text-white py-3 rounded-full font-bold hover:bg-monet-dark transition-all btn-hover" data-i18n="close">
         关闭
       </button>
     </div>
   </div>
 
-  <!-- 游戏结束弹窗 -->
-  <div id="gameOverModal" class="modal">
-    <div class="modal-content">
-      <h2 class="text-3xl font-bold text-monet-dark mb-4">游戏结束!</h2>
-      <p class="text-lg text-monet-dark mb-6">最终得分: <span id="finalScore">0</span></p>
-      <button id="tryAgainBtn" class="bg-monet text-white px-6 py-3 rounded-full text-lg font-bold hover:bg-monet-dark transition-all btn-hover">
-        再来一局
-      </button>
-    </div>
-  </div>
-
   <script>
-    // 游戏配置
+    // --- 语言系统 ---
+    const translations = {
+      en: {
+        howToPlay: "How to Play",
+        settings: "Settings",
+        restart: "Restart",
+        score: "Score",
+        bestScore: "Best Score",
+        keyboardHint: "Use <span class='font-bold'>↑ ↓ ← →</span> or <span class='font-bold'>WASD</span> to move tiles",
+        touchHint: "Or <span class='font-bold'>swipe</span> on touch screens",
+        howToPlayTitle: "How to Play 2048",
+        howToPlayDesc1: "Use arrow keys or WASD to move tiles. Tiles with the same number merge into one when they touch.",
+        howToPlayDesc2: "A new tile (2 or 4) will randomly appear after each move.",
+        howToPlayDesc3: "Try to create a higher score!",
+        startPlaying: "Start Playing",
+        settingsTitle: "Game Settings",
+        language: "Language",
+        darkMode: "Dark Mode",
+        darkModeDesc: "Switch the visual theme of the game. Dark mode uses a dark background and high-contrast elements, suitable for night or low-light environments and can reduce eye strain.",
+        difficulty: "Difficulty",
+        difficultyEasy: "Easy",
+        difficultyMedium: "Medium",
+        difficultyHard: "Hard",
+        difficultyDesc: "Adjusting the difficulty affects the number of initial tiles and the probability of generating new tiles. Easy mode is more accessible, while hard mode is more challenging.",
+        disableAnimations: "Disable Animations",
+        disableAnimationsDesc: "Disable some animation effects in the game, including tile movement, merging, and new tile appearance animations. This will sacrifice visual experience. Only consider enabling it if your device has poor performance.",
+        close: "Close",
+        gameWon: "You Win!",
+        gameWonDesc: "You've reached 2048!",
+        keepPlaying: "Keep Playing",
+        newGame: "New Game",
+        gameOver: "Game Over!",
+        gameOverDesc: "No more moves available!"
+      },
+      zh: {
+        howToPlay: "玩法",
+        settings: "设置",
+        restart: "重来",
+        score: "得分",
+        bestScore: "最高分",
+        keyboardHint: "使用 <span class='font-bold'>↑ ↓ ← →</span> 或 <span class='font-bold'>WASD</span> 移动方块",
+        touchHint: "或在触摸屏上 <span class='font-bold'>滑动</span> 移动",
+        howToPlayTitle: "如何玩2048",
+        howToPlayDesc1: "使用方向键或WASD键移动方块，相同数字的方块会合并成为它们的和。",
+        howToPlayDesc2: "每次移动后会随机生成一个新的2或4方块。",
+        howToPlayDesc3: "尝试创造更高的分数！",
+        startPlaying: "开始游戏",
+        settingsTitle: "游戏设置",
+        language: "语言",
+        darkMode: "深色模式",
+        darkModeDesc: "切换游戏的视觉主题。深色模式使用深色背景和高对比度元素，适合夜间或低光环境，可减轻眼睛疲劳。",
+        difficulty: "游戏难度",
+        difficultyEasy: "简单",
+        difficultyMedium: "中等",
+        difficultyHard: "困难",
+        difficultyDesc: "调整游戏难度会影响初始方块数量和生成新方块的概率。简单模式更容易上手，困难模式更具挑战性。",
+        disableAnimations: "关闭动画效果(实验性)",
+        disableAnimationsDesc: "禁用游戏中的部分动画效果，包括方块移动、合并和新方块出现的动画。会牺牲视觉体验。仅在设备性能较差时考虑开启。",
+        close: "关闭",
+        gameWon: "你赢了!",
+        gameWonDesc: "你已经合成了2048!",
+        keepPlaying: "继续游戏",
+        newGame: "新游戏",
+        gameOver: "游戏结束!",
+        gameOverDesc: "无法再移动方块了!"
+      },
+      "zh-TW": {
+        howToPlay: "玩法",
+        settings: "設定",
+        restart: "重來",
+        score: "得分",
+        bestScore: "最高分",
+        keyboardHint: "使用 <span class='font-bold'>↑ ↓ ← →</span> 或 <span class='font-bold'>WASD</span> 移動方塊",
+        touchHint: "或在觸控螢幕上 <span class='font-bold'>滑動</span> 移動",
+        howToPlayTitle: "如何玩2048",
+        howToPlayDesc1: "使用方向鍵或WASD鍵移動方塊，相同數字的方塊會合併成為它們的和。",
+        howToPlayDesc2: "每次移動後會隨機生成一個新的2或4方塊。",
+        howToPlayDesc3: "嘗試創造更高的分數！",
+        startPlaying: "開始遊戲",
+        settingsTitle: "遊戲設定",
+        language: "語言",
+        darkMode: "深色模式",
+        darkModeDesc: "切換遊戲的視覺主題。深色模式使用深色背景和高對比度元素，適合夜間或低光環境，可減輕眼睛疲勞。",
+        difficulty: "遊戲難度",
+        difficultyEasy: "簡單",
+        difficultyMedium: "中等",
+        difficultyHard: "困難",
+        difficultyDesc: "調整遊戲難度會影響初始方塊數量和生成新方塊的機率。簡單模式更容易上手，困難模式更具挑戰性。",
+        disableAnimations: "關閉動畫效果",
+        disableAnimationsDesc: "禁用遊戲中的部分動畫效果，包括方塊移動、合併和新方塊出現的動畫。會犧牲視覺體驗。僅在設備效能較差時考慮開啟。",
+        close: "關閉",
+        gameWon: "你贏了!",
+        gameWonDesc: "你已經合成了2048!",
+        keepPlaying: "繼續遊戲",
+        newGame: "新遊戲",
+        gameOver: "遊戲結束!",
+        gameOverDesc: "無法再移動方塊了!"
+      },
+      ja: {
+        howToPlay: "遊び方",
+        settings: "設定",
+        restart: "再スタート",
+        score: "スコア",
+        bestScore: "ベストスコア",
+        keyboardHint: "<span class='font-bold'>↑ ↓ ← →</span> キーまたは <span class='font-bold'>WASD</span> キーでタイルを移動",
+        touchHint: "またはタッチスクリーンで <span class='font-bold'>スワイプ</span> して移動",
+        howToPlayTitle: "2048の遊び方",
+        howToPlayDesc1: "矢印キーまたはWASDキーを使用してタイルを移動させます。同じ数字のタイルが接触すると、それらは合体して合計になります。",
+        howToPlayDesc2: "毎回移動した後、ランダムに新しい2または4のタイルが生成されます。",
+        howToPlayDesc3: "より高いスコアを目指しましょう！",
+        startPlaying: "ゲームを始める",
+        settingsTitle: "ゲーム設定",
+        language: "言語",
+        darkMode: "ダークモード",
+        darkModeDesc: "ゲームの視覚的なテーマを切り替えます。ダークモードは暗い背景と高コントラストの要素を使用し、夜間や低照度環境に適しており、目の疲れを軽減できます。",
+        difficulty: "ゲーム難易度",
+        difficultyEasy: "簡単",
+        difficultyMedium: "普通",
+        difficultyHard: "難しい",
+        difficultyDesc: "難易度を調整すると、初期タイルの数と新しいタイルが生成される確率に影響します。簡単モードは初心者にやさしく、難しいモードはより挑戦的です。",
+        disableAnimations: "アニメーション効果をオフにする",
+        disableAnimationsDesc: "ゲーム内の一部のアニメーション効果（タイルの移動、合体、新しいタイルの出現など）を無効にします。視覚的な体験が犠牲になります。デバイスのパフォーマンスが低い場合にのみ考慮してください。",
+        close: "閉じる",
+        gameWon: "あなたの勝ち!",
+        gameWonDesc: "あなたは2048を合成しました!",
+        keepPlaying: "続けて遊ぶ",
+        newGame: "新しいゲーム",
+        gameOver: "ゲームオーバー!",
+        gameOverDesc: "これ以上移動できません!"
+      },
+      "mn-Mong": {
+        howToPlay: "ᠲ᠋ᠤᠭ᠋ᠯᠠᠬᠤ ᠠᠷᠭᠠ",
+        settings: "ᠲ᠋ᠣᠬᠢᠷᠭᠠ",
+        restart: "ᠳᠠᠬᠢᠨ ᠡᠬᠡᠯᠡᠬᠦ",
+        score: "ᠣᠨᠣᠭᠠ",
+        bestScore: "ᠳᠡᠭᠡᠳᠦ ᠣᠨᠣᠭᠠ",
+        keyboardHint: "<span class='font-bold'>↑ ↓ ← →</span> ᠡᠰᠡᠭᠡᠯᠡ ᠪᠦ᠋ <span class='font-bold'>WASD</span> ᠲᠣᠪᠴᠢᠭᠤᠳ ᠢᠶᠡᠨ ᠬᠥᠳᠡᠯᠭᠡᠨᠡ",
+        touchHint: "ᠡᠰᠡᠭᠡᠯᠡ ᠮᠡᠳᠡᠷᠡᠭᠡᠴᠡ ᠳᠡᠯᠡᠭᠡᠴᠡ ᠳᠡ <span class='font-bold'>ᠱᠦᠦᠷᠡᠨ</span> ᠬᠥᠳᠡᠯᠭᠡᠨᠡ",
+        howToPlayTitle: "2048 ᠬᠡᠷᠡᠭᠬᠡ ᠲᠤᠭᠯᠠᠬᠤ",
+        howToPlayDesc1: "ᠰᠤᠮᠤᠨ ᠦ ᠲᠣᠪᠴᠢᠭ ᠡᠰᠡᠭᠡᠯᠡ ᠪᠦ᠋ ᠪᠦ᠋ WASD ᠲᠣᠪᠴᠢᠭᠤᠳ ᠢᠶᠡᠨ ᠬᠥᠳᠡᠯᠭᠡᠨᠡ. ᠢᠵᠢᠯ ᠲᠣᠭᠠᠲᠠᠢ ᠬᠡᠰᠡᠭᠡᠨᠦᠳ ᠬᠡᠰᠡᠭᠡᠨᠦᠳ ᠬᠦᠷᠡᠯᠴᠡᠬᠦ ᠦᠭᠡᠢ ᠨᠡᠢᠭᠡᠳᠦᠭᠰᠡᠨᠡ.",
+        howToPlayDesc2: "ᠬᠥᠳᠡᠯᠭᠡ ᠪᠦᠷᠢᠶᠡᠨ ᠦ ᠳᠠᠷᠠᠭᠠ 2 ᠡᠰᠡᠭᠡᠯᠡ ᠪᠦ᠋ 4 ᠲᠣᠭᠠᠲᠠᠢ ᠰᠢᠨᠡ ᠬᠡᠰᠡᠭᠡᠨᠦᠳ ᠰᠠᠨᠠᠮᠰᠠᠷᠭᠤᠭᠤᠯᠬᠤ ᠭᠠᠷᠴᠠᠬᠤ.",
+        howToPlayDesc3: "ᠢᠯᠦᠭᠡ ᠥᠨᠳᠥᠷ ᠣᠨᠣᠭᠠ ᠠᠪᠬᠤᠷᠠᠵᠤ ᠺᠢᠴᠡᠭᠡᠨᠡ!",
+        startPlaying: "ᠲᠤᠭᠯᠠᠬᠤ",
+        settingsTitle: "ᠲᠤᠭᠯᠣᠮ ᠦ ᠲᠣᠬᠢᠷᠭᠠ",
+        language: "ᠺᠡᠯᠡ",
+        darkMode: "ᠬᠠᠷᠠᠩᠬᠤᠢ ᠭᠣᠷᠢᠮ",
+        darkModeDesc: "ᠲᠤᠭᠯᠣᠮ ᠦ ᠺᠠᠷᠠᠭᠳᠠᠴᠢ ᠥᠩᠭᠡ ᠦ ᠵᠠᠭᠤᠯᠢ ᠪᠠᠢᠴᠠᠭᠠᠨᠠ. ᠬᠠᠷᠠᠩᠬᠤᠢ ᠭᠣᠷᠢᠮ ᠨᠦ᠋ ᠬᠠᠷᠠᠩᠬᠤᠢ ᠳᠡᠪᠡᠰᠡᠷ ᠥᠩᠭᠡ ᠥᠨᠳᠥᠷ ᠺᠣᠨᠲ᠋ᠷᠠᠰᠲᠲᠠᠢ ᠡᠯᠡᠮᠡᠨᠲᠦᠳ ᠠᠴᠢᠬᠤ ᠪᠦ᠋ᠡᠨᠡ ᠱᠥᠨᠢ ᠦ ᠴᠠᠭ ᠡᠰᠡᠭᠡᠯᠡ ᠺᠡᠷᠡᠭᠡᠨᠢ ᠴᠠᠭᠠᠨ ᠣᠷᠴᠢᠨ ᠲᠣᠭᠤᠷᠬᠠᠮᠲᠤ ᠲᠣᠭᠤᠮᠲᠠᠯᠴᠠᠬᠤ ᠪᠦ᠋ᠡᠨᠡ ᠨᠦᠳᠡᠨ ᠦ ᠶᠠᠳᠠᠯᠭᠠᠯᠲᠠ ᠪᠠᠭᠤᠵᠤ ᠲᠠᠭᠠᠭᠠᠴᠢᠯᠠᠨᠡ.",
+        difficulty: "ᠺᠡᠴᠦᠭᠡ ᠪᠠᠢᠳᠠᠯ",
+        difficultyEasy: "ᠠᠮᠠᠷᠬᠠᠨ",
+        difficultyMedium: "ᠳᠤᠩᠳ ᠵᠡᠷᠡᠭ",
+        difficultyHard: "ᠺᠡᠴᠦᠭᠡ",
+        difficultyDesc: "ᠺᠡᠴᠦᠭᠡ ᠪᠠᠢᠳᠠᠯ ᠢᠶᠡᠨ ᠲᠣᠬᠢᠷᠭᠠᠬᠤ ᠨᠦ᠋ ᠠᠩᠬᠠᠨ ᠦ ᠬᠡᠰᠡᠭᠡᠨᠦᠳ ᠦᠨ ᠲᠣᠭᠠ ᠪᠦ᠋ᠡᠨᠡ ᠰᠢᠨᠡ ᠬᠡᠰᠡᠭᠡᠨᠦᠳ ᠦᠨ ᠮᠠᠭᠠᠳᠠᠯ ᠳᠡᠳ ᠨᠣᠯᠤᠭᠠᠳᠬᠤ. ᠠᠮᠠᠷᠬᠠᠨ ᠭᠣᠷᠢᠮ ᠨᠦ᠋ ᠡᠬᠡᠯᠡᠭᠡᠳᠲᠦᠷ ᠲᠣᠭᠤᠷᠬᠠᠮᠲᠤ ᠲᠣᠭᠤᠮᠲᠠᠯᠴᠠᠬᠤ ᠪᠦ᠋ᠡᠨᠡ ᠺᠡᠴᠦᠭᠡ ᠭᠣᠷᠢᠮ ᠨᠦ᠋ ᠢᠯᠦᠭᠡ ᠰᠣᠷᠢᠯᠭᠠᠯᠲᠠᠲᠠᠢ ᠪᠠᠢᠨᠠ.",
+        disableAnimations: "ᠺᠥᠳᠡᠯᠭᠡᠨ ᠦ ᠢᠳᠡᠪᠬᠬᠢᠷᠭᠠᠬᠤ",
+        disableAnimationsDesc: "ᠲᠤᠭᠯᠣᠮ ᠳᠠᠷᠠᠭᠠ ᠺᠥᠳᠡᠯᠭᠡᠨ ᠦ ᠡᠸᠧᠺᠲᠢᠶᠡᠨ ᠢᠳᠡᠪᠬᠬᠢᠷᠭᠠᠨᠡ. ᠦᠨᠳᠡᠰ ᠳᠡ ᠬᠡᠰᠡᠭᠡᠨᠦᠳ ᠦᠨ ᠺᠥᠳᠡᠯᠭᠡᠨ ᠨᠡᠢᠭᠡᠳᠦᠭᠰᠡᠨᠡ ᠪᠦ᠋ᠡᠨᠡ ᠰᠢᠨᠡ ᠬᠡᠰᠡᠭᠡᠨᠦᠳ ᠭᠠᠷᠴᠠᠬᠤ ᠺᠥᠳᠡᠯᠭᠡᠨ ᠦᠨᠳᠡᠰ ᠪᠠᠭᠤᠵᠤ ᠲᠠᠭᠠᠭᠠᠴᠢᠯᠠᠨᠡ. ᠨᠦ᠋ ᠺᠠᠷᠠᠭᠳᠠᠴᠢ ᠪᠠᠢᠳᠠᠯ ᠢᠶᠡᠨ ᠪᠠᠭᠤᠵᠤ ᠲᠠᠭᠠᠭᠠᠴᠢᠯᠠᠨᠡ. ᠳᠠᠨᠢᠮᠳᠠᠷ ᠲᠥᠬᠥᠺᠣᠷᠣᠮᠵᠢ ᠦᠨ ᠭᠦᠨᠴᠢᠭᠡᠨ ᠮᠤᠤ ᠪᠠᠢᠨᠠ ᠪᠣᠯ ᠢᠳᠡᠪᠬᠬᠢᠷᠭᠠᠵᠤ ᠰᠠᠨᠠᠵᠤ ᠪᠠᠢᠭᠰᠠᠨᠡ.",
+        close: "ᠺᠠᠬᠤ",
+        gameWon: "ᠲᠠ ᠺᠣᠵᠢᠯᠠ!",
+        gameWonDesc: "ᠲᠠ 2048-ᠢᠢ ᠺᠦᠷᠲᠡᠯᠡ!",
+        keepPlaying: "ᠦᠷᠭᠡᠯᠡᠯᠡᠬᠦ",
+        newGame: "ᠰᠢᠨᠡ ᠲᠤᠭᠯᠣᠮ",
+        gameOver: "ᠲᠤᠭᠯᠣᠮ ᠳᠤᠲᠠᠭᠠᠯᠠᠬᠤ!",
+        gameOverDesc: "ᠨᠡᠮᠡᠬᠦ ᠺᠥᠳᠡᠯᠭᠡᠨ ᠤᠯᠤᠰ ᠪᠠᠢᠭᠤᠯᠬᠤᠭᠠ!"
+      }
+    };
+
+    // --- 工具函数 ---
+    const utils = {
+      /**
+       * 获取DOM元素
+       * @param {string} selector - CSS选择器
+       * @returns {HTMLElement} DOM元素
+       */
+      getElement(selector) {
+        return document.querySelector(selector);
+      },
+
+      /**
+       * 获取多个DOM元素
+       * @param {string} selector - CSS选择器
+       * @returns {NodeList} DOM元素列表
+       */
+      getElements(selector) {
+        return document.querySelectorAll(selector);
+      },
+
+      /**
+       * 打开模态框
+       * @param {string} modalId - 模态框ID
+       */
+      openModal(modalId) {
+        const modal = this.getElement(`#${modalId}`);
+        if (modal) {
+          modal.classList.add('active');
+        }
+      },
+
+      /**
+       * 关闭模态框
+       * @param {string} modalId - 模态框ID
+       */
+      closeModal(modalId) {
+        const modal = this.getElement(`#${modalId}`);
+        if (modal) {
+          modal.classList.remove('active');
+          setTimeout(() => this.getElement('#gameContainer').focus(), 300);
+        }
+      },
+
+      /**
+       * 显示游戏状态提示
+       * @param {string} status - 状态类型 ('won', 'gameOver')
+       */
+      showGameStatus(status) {
+        const statusElement = this.getElement('#gameStatus');
+        const statusTextElement = this.getElement('#gameStatusText');
+        const statusBtnElement = this.getElement('#gameStatusBtn');
+        
+        if (status === 'won') {
+          statusTextElement.textContent = translations[currentLanguage].gameWonDesc || "You've reached 2048!";
+          statusBtnElement.textContent = translations[currentLanguage].keepPlaying || "Keep Playing";
+          // 重新绑定点击事件
+          statusBtnElement.onclick = () => {
+            statusElement.classList.remove('active');
+            if (window.game) {
+              window.game.resumeAfterWin();
+            }
+          };
+        } else if (status === 'gameOver') {
+          statusTextElement.textContent = translations[currentLanguage].gameOverDesc || "No more moves available!";
+          statusBtnElement.textContent = translations[currentLanguage].newGame || "New Game";
+          // 重新绑定点击事件
+          statusBtnElement.onclick = () => {
+            statusElement.classList.remove('active');
+            if (window.game) {
+              window.game.init();
+            }
+          };
+        }
+        
+        statusElement.classList.add('active');
+      },
+
+      /**
+       * 更新游戏状态提示的文本
+       */
+      updateGameStatusText() {
+        const statusElement = this.getElement('#gameStatus');
+        if (statusElement.classList.contains('active')) {
+          const statusTextElement = this.getElement('#gameStatusText');
+          const statusBtnElement = this.getElement('#gameStatusBtn');
+          
+          // 根据当前显示的内容判断是胜利还是游戏结束
+          const currentText = statusTextElement.textContent;
+          const currentBtnText = statusBtnElement.textContent;
+          
+          // 检查是否是胜利状态
+          const wonDescKeys = Object.values(translations).map(t => t.gameWonDesc);
+          const keepPlayingKeys = Object.values(translations).map(t => t.keepPlaying);
+          
+          // 检查是否是游戏结束状态
+          const gameOverDescKeys = Object.values(translations).map(t => t.gameOverDesc);
+          const newGameKeys = Object.values(translations).map(t => t.newGame);
+          
+          if (wonDescKeys.includes(currentText) || keepPlayingKeys.includes(currentBtnText)) {
+            // 胜利状态
+            statusTextElement.textContent = translations[currentLanguage].gameWonDesc;
+            statusBtnElement.textContent = translations[currentLanguage].keepPlaying;
+            // 重新绑定事件
+            statusBtnElement.onclick = () => {
+              statusElement.classList.remove('active');
+              if (window.game) {
+                window.game.resumeAfterWin();
+              }
+            };
+          } else if (gameOverDescKeys.includes(currentText) || newGameKeys.includes(currentBtnText)) {
+            // 游戏结束状态
+            statusTextElement.textContent = translations[currentLanguage].gameOverDesc;
+            statusBtnElement.textContent = translations[currentLanguage].newGame;
+            // 重新绑定事件
+            statusBtnElement.onclick = () => {
+              statusElement.classList.remove('active');
+              if (window.game) {
+                window.game.init();
+              }
+            };
+          }
+        }
+      },
+
+      /**
+       * 更新UI文本
+       */
+      updateUI() {
+        document.querySelectorAll('[data-i18n]').forEach(element => {
+          const key = element.getAttribute('data-i18n');
+          if (translations[currentLanguage] && translations[currentLanguage][key]) {
+            // 特殊处理包含HTML的内容
+            if (key === 'keyboardHint' || key === 'touchHint') {
+              element.innerHTML = translations[currentLanguage][key];
+            } else {
+              element.textContent = translations[currentLanguage][key];
+            }
+          }
+        });
+        
+        let titleText;
+        if (currentLanguage === 'zh') {
+          titleText = '2048 - 经典数字拼图游戏';
+        } else if (currentLanguage === 'zh-TW') {
+          titleText = '2048 - 經典數字拼圖遊戲';
+        } else if (currentLanguage === 'ja') {
+          titleText = '2048 - 古典的な数字パズルゲーム';
+        } else if (currentLanguage === 'mn-Mong') {
+          titleText = '2048 - ᠰᠣᠩᠭᠣᠳᠣᠭ ᠲᠣᠭᠠᠨ ᠦ ᠣᠨᠢᠰᠣᠭᠣ ᠲᠤᠭᠯᠣᠮ';
+        } else {
+          titleText = '2048 - Classic Number Puzzle Game';
+        }
+        document.getElementById('pageTitle').textContent = titleText;
+        
+        // 更新游戏状态提示文本
+        this.updateGameStatusText();
+        
+        // 修复语言切换时所有开关的圆圈位置问题
+        const toggleInputs = document.querySelectorAll('.theme-switch input');
+        toggleInputs.forEach(input => {
+          input.style.display = 'none';
+        });
+      }
+    };
+
+    // --- 游戏配置和设置 ---
     const config = {
       gridSize: 4,
-      startTiles: 2,
       winningValue: 2048
     };
 
-    // 游戏状态设置
     const gameSettings = {
       disableAnimations: localStorage.getItem('2048-disable-animations') === 'true',
-      disableRendering: localStorage.getItem('2048-disable-rendering') === 'true',
       difficulty: parseInt(localStorage.getItem('2048-difficulty')) || 2 // 1-简单, 2-中等, 3-困难
     };
 
-    // DOM元素缓存
-    const dom = {
-      gameBoard: document.getElementById('gameBoard'),
-      scoreDisplay: document.getElementById('score'),
-      bestScoreDisplay: document.getElementById('bestScore'),
-      gameOverModal: document.getElementById('gameOverModal'),
-      finalScoreDisplay: document.getElementById('finalScore'),
-      restartBtn: document.getElementById('restartBtn'),
-      tryAgainBtn: document.getElementById('tryAgainBtn'),
-      howToPlayBtn: document.getElementById('howToPlayBtn'),
-      howToPlayModal: document.getElementById('howToPlayModal'),
-      closeHowToPlayModalBtn: document.getElementById('closeHowToPlayModalBtn'),
-      startPlayingBtn: document.getElementById('startPlayingBtn'),
-      gameContainer: document.getElementById('gameContainer'),
-      settingsBtn: document.getElementById('settingsBtn'),
-      settingsModal: document.getElementById('settingsModal'),
-      closeSettingsModalBtn: document.getElementById('closeSettingsModalBtn'),
-      closeSettingsBtn: document.getElementById('closeSettingsBtn'),
-      themeToggle: null,
-      disableAnimationsToggle: null,
-      disableRenderingToggle: null,
-      difficultySlider: null,
-      difficultyValue: null,
-    };
+    let currentLanguage = localStorage.getItem('2048-language') || 'zh';
 
-    // 主题切换功能
-    function setupThemeToggle() {
-      dom.themeToggle = document.getElementById('themeToggle');
-      const savedTheme = localStorage.getItem('2048-theme') || 'light';
-      document.documentElement.classList.toggle('dark', savedTheme === 'dark');
-      dom.themeToggle.checked = savedTheme === 'dark';
-      dom.themeToggle.addEventListener('change', function() {
-        document.documentElement.classList.toggle('dark', this.checked);
-        localStorage.setItem('2048-theme', this.checked ? 'dark' : 'light');
-      });
-    }
-
-    // 动画和渲染设置功能
-    function setupAnimationRenderingToggles() {
-      dom.disableAnimationsToggle = document.getElementById('disableAnimationsToggle');
-      dom.disableRenderingToggle = document.getElementById('disableRenderingToggle');
-      dom.disableAnimationsToggle.checked = gameSettings.disableAnimations;
-      dom.disableRenderingToggle.checked = gameSettings.disableRendering;
-      dom.disableAnimationsToggle.addEventListener('change', function() {
-        gameSettings.disableAnimations = this.checked;
-        localStorage.setItem('2048-disable-animations', gameSettings.disableAnimations);
-      });
-      dom.disableRenderingToggle.addEventListener('change', function() {
-        gameSettings.disableRendering = this.checked;
-        localStorage.setItem('2048-disable-rendering', gameSettings.disableRendering);
-      });
-    }
-
-    // 游戏难度设置功能
-    function setupDifficultySlider() {
-      dom.difficultySlider = document.getElementById('difficultySlider');
-      dom.difficultyValue = document.getElementById('difficultyValue');
-      dom.difficultySlider.value = gameSettings.difficulty;
-      
-      function updateDifficultyDisplay() {
-        const difficulty = parseInt(dom.difficultySlider.value);
-        let difficultyText = '';
-        switch(difficulty) {
-          case 1: difficultyText = '简单'; break;
-          case 2: difficultyText = '中等'; break;
-          case 3: difficultyText = '困难'; break;
-        }
-        dom.difficultyValue.textContent = difficultyText;
-      }
-      
-      updateDifficultyDisplay();
-      dom.difficultySlider.addEventListener('input', updateDifficultyDisplay);
-      dom.difficultySlider.addEventListener('change', function() {
-        gameSettings.difficulty = parseInt(this.value);
-        localStorage.setItem('2048-difficulty', gameSettings.difficulty);
-      });
-    }
-
-    // 游戏主类
+    // --- 游戏主类 ---
     class Game2048 {
       constructor() {
+        // DOM元素缓存
+        this.dom = {
+          gameBoard: utils.getElement('#gameBoard'),
+          scoreDisplay: utils.getElement('#score'),
+          bestScoreDisplay: utils.getElement('#bestScore'),
+          restartBtn: utils.getElement('#restartBtn'),
+          howToPlayBtn: utils.getElement('#howToPlayBtn'),
+          howToPlayModal: utils.getElement('#howToPlayModal'),
+          closeHowToPlayModalBtn: utils.getElement('#closeHowToPlayModalBtn'),
+          startPlayingBtn: utils.getElement('#startPlayingBtn'),
+          gameContainer: utils.getElement('#gameContainer'),
+          settingsBtn: utils.getElement('#settingsBtn'),
+          settingsModal: utils.getElement('#settingsModal'),
+          closeSettingsModalBtn: utils.getElement('#closeSettingsModalBtn'),
+          closeSettingsBtn: utils.getElement('#closeSettingsBtn'),
+          themeToggle: null,
+          disableAnimationsToggle: null,
+          difficultySlider: null,
+          difficultyValue: null,
+          languageOptions: utils.getElements('.language-option')
+        };
+
+        // 游戏状态
         this.grid = [];
         this.score = 0;
-        this.bestScore = localStorage.getItem('2048-best-score') || 0;
-        this.gameOver = false;
-        this.isProcessingMove = false; // 移动处理标志
+        this.bestScore = parseInt(localStorage.getItem('2048-best-score')) || 0;
+        this.gameWon = false;
+        this.isProcessingMove = false;
+        this.isAnimating = false;
+
+        // 尺寸计算
         this.tileSize = 0;
         this.tileGap = 0;
         this.boardPadding = 0;
+
+        // 初始化游戏
         this.init();
       }
 
+      /**
+       * 初始化游戏
+       */
       init() {
+        // 重置游戏状态
         this.grid = Array(config.gridSize).fill().map(() => Array(config.gridSize).fill(null));
         this.score = 0;
-        this.gameOver = false;
-        this.isProcessingMove = false; // 重置移动处理标志
-        this.updateScoreDisplay(false); // 初始化时不显示动画
-        dom.gameOverModal.classList.remove('active');
+        this.gameWon = false;
+        this.isProcessingMove = false;
+
+        // 更新UI
+        this.updateScoreDisplay(false);
+
+        // 计算尺寸并渲染
         this.calculateTileSize();
         this.renderGrid();
+
+        // 根据难度设置初始方块数量
         const startTiles = gameSettings.difficulty === 3 ? 3 : 2;
         for (let i = 0; i < startTiles; i++) {
           this.addRandomTile();
         }
-        dom.gameContainer.focus();
+
+        // 设置焦点
+        this.dom.gameContainer.focus();
       }
 
+      /**
+       * 计算棋盘和方块尺寸
+       */
       calculateTileSize() {
-        const boardRect = dom.gameBoard.getBoundingClientRect();
-        this.boardPadding = parseInt(getComputedStyle(dom.gameBoard).paddingLeft);
+        const boardRect = this.dom.gameBoard.getBoundingClientRect();
+        this.boardPadding = parseInt(getComputedStyle(this.dom.gameBoard).paddingLeft);
         const boardSize = Math.min(boardRect.width, boardRect.height) - (this.boardPadding * 2);
         this.tileGap = Math.floor(boardSize * 0.05);
         this.tileSize = Math.floor((boardSize - (config.gridSize - 1) * this.tileGap) / config.gridSize);
+        
+        // 调整棋盘尺寸以确保精确匹配
         const adjustedSize = (this.tileSize * config.gridSize) + (this.tileGap * (config.gridSize - 1)) + (this.boardPadding * 2);
-        dom.gameBoard.style.width = `${adjustedSize}px`;
-        dom.gameBoard.style.height = `${adjustedSize}px`;
+        this.dom.gameBoard.style.width = `${adjustedSize}px`;
+        this.dom.gameBoard.style.height = `${adjustedSize}px`;
         document.documentElement.style.setProperty('--board-width', `${adjustedSize}px`);
       }
 
+      /**
+       * 渲染棋盘格子
+       */
       renderGrid() {
-        dom.gameBoard.innerHTML = '';
+        this.dom.gameBoard.innerHTML = ''; // 清空棋盘
+        // 添加游戏状态元素
+        const statusElement = document.createElement('div');
+        statusElement.id = 'gameStatus';
+        statusElement.className = 'game-status text-xl font-bold';
+        statusElement.innerHTML = `
+          <p id="gameStatusText" class="mb-2"></p>
+          <button id="gameStatusBtn" class="bg-white text-monet px-4 py-2 rounded-full font-bold hover:bg-monet-dark hover:text-white transition-all btn-hover">
+            继续游戏
+          </button>
+        `;
+        this.dom.gameBoard.appendChild(statusElement);
+        
+        // 创建格子
         for (let y = 0; y < config.gridSize; y++) {
           for (let x = 0; x < config.gridSize; x++) {
             const cell = document.createElement('div');
@@ -771,11 +991,15 @@
             cell.style.height = `${this.tileSize}px`;
             cell.style.left = `${this.boardPadding + x * (this.tileSize + this.tileGap)}px`;
             cell.style.top = `${this.boardPadding + y * (this.tileSize + this.tileGap)}px`;
-            dom.gameBoard.appendChild(cell);
+            this.dom.gameBoard.appendChild(cell);
           }
         }
       }
 
+      /**
+       * 在随机空位置添加一个新方块
+       * @returns {boolean} 是否成功添加
+       */
       addRandomTile() {
         const availableCells = [];
         for (let y = 0; y < config.gridSize; y++) {
@@ -785,33 +1009,52 @@
             }
           }
         }
+        
         if (availableCells.length === 0) return false;
+        
         const cell = availableCells[Math.floor(Math.random() * availableCells.length)];
-        const fourProbability = gameSettings.difficulty === 3 ? 0.2 : 0.1;
+        // 根据难度调整生成4的概率
+        const fourProbability = gameSettings.difficulty === 3 ? 0.3 : (gameSettings.difficulty === 2 ? 0.1 : 0.05);
         const value = Math.random() < (1 - fourProbability) ? 2 : 4;
+        
         this.grid[cell.y][cell.x] = value;
         this.renderTile(cell.x, cell.y, value, true);
+        
+        // 检查是否达到胜利条件
+        if (value === config.winningValue && !this.gameWon) {
+          this.gameWon = true;
+          setTimeout(() => utils.showGameStatus('won'), 500);
+        }
+        
         return true;
       }
 
+      /**
+       * 渲染单个方块
+       * @param {number} x - x坐标
+       * @param {number} y - y坐标
+       * @param {number} value - 方块数值
+       * @param {boolean} [isNew=false] - 是否是新方块
+       * @param {boolean} [isMerged=false] - 是否是合并后的方块
+       */
       renderTile(x, y, value, isNew = false, isMerged = false) {
-        // 移除相同位置的现有方块
-        const existingTiles = dom.gameBoard.querySelectorAll(`.tile[data-x="${x}"][data-y="${y}"]`);
+        // 移除旧的方块
+        const existingTiles = this.dom.gameBoard.querySelectorAll(`.tile[data-x="${x}"][data-y="${y}"]`);
         existingTiles.forEach(tile => tile.remove());
         
         if (value) {
           const tile = document.createElement('div');
           const tileClass = value > 2048 ? 'tile-super' : `tile-${value}`;
+          
           tile.classList.add(
             'tile',
             tileClass,
             'text-xl',
             'sm:text-2xl',
-            'font-bold'
+            'font-bold',
+            'tile-shadow'
           );
-          if (!gameSettings.disableRendering) {
-            tile.classList.add('tile-shadow');
-          }
+          
           tile.style.width = `${this.tileSize}px`;
           tile.style.height = `${this.tileSize}px`;
           tile.style.left = `${this.boardPadding + x * (this.tileSize + this.tileGap)}px`;
@@ -828,11 +1071,16 @@
             tile.classList.add('tile-merged');
           }
           
-          dom.gameBoard.appendChild(tile);
+          this.dom.gameBoard.appendChild(tile);
           this.adjustTileFontSize(tile, value);
         }
       }
 
+      /**
+       * 根据数值调整方块字体大小
+       * @param {HTMLElement} tile - 方块元素
+       * @param {number} value - 方块数值
+       */
       adjustTileFontSize(tile, value) {
         const textLength = String(value).length;
         let fontSize = '1.5rem';
@@ -844,65 +1092,69 @@
         tile.style.fontSize = fontSize;
       }
 
-      // 更新分数显示，添加动画控制参数
+      /**
+       * 更新分数显示
+       * @param {boolean} [showAnimation=true] - 是否显示分数变化动画
+       */
       updateScoreDisplay(showAnimation = true) {
-        dom.scoreDisplay.textContent = this.score;
-        dom.bestScoreDisplay.textContent = this.bestScore;
+        this.dom.scoreDisplay.textContent = this.score;
+        
+        // 更新最高分
+        if (this.score > this.bestScore) {
+          this.bestScore = this.score;
+          localStorage.setItem('2048-best-score', this.bestScore);
+        }
+        
+        this.dom.bestScoreDisplay.textContent = this.bestScore;
         
         if (showAnimation && !gameSettings.disableAnimations) {
-          dom.scoreDisplay.classList.add('score-change');
+          this.dom.scoreDisplay.classList.add('score-change');
           setTimeout(() => {
-            dom.scoreDisplay.classList.remove('score-change');
+            this.dom.scoreDisplay.classList.remove('score-change');
           }, 300);
         }
       }
 
-      // 检查是否可以移动或合并
+      /**
+       * 检查游戏是否可以移动
+       * @returns {boolean} 是否可以移动
+       */
       canMove() {
-        // 检查是否有空单元格
+        // 检查是否有空位置
         for (let y = 0; y < config.gridSize; y++) {
           for (let x = 0; x < config.gridSize; x++) {
-            if (this.grid[y][x] === null) { // 明确判断null，避免undefined干扰
+            if (this.grid[y][x] === null) {
               return true;
             }
           }
         }
         
-        // 检查相邻单元格是否可以合并
+        // 检查相邻方块是否可以合并
         for (let y = 0; y < config.gridSize; y++) {
           for (let x = 0; x < config.gridSize; x++) {
             const value = this.grid[y][x];
-            // 横向右侧相邻（避免x越界）
             if (x < config.gridSize - 1 && this.grid[y][x + 1] === value) {
               return true;
             }
-            // 纵向下方相邻（避免y越界）
             if (y < config.gridSize - 1 && this.grid[y + 1][x] === value) {
               return true;
             }
           }
         }
         
-        // 无空单元格且无合并可能 → 无法移动
         return false;
       }
 
-      showGameOver() {
-        this.gameOver = true;
-        dom.finalScoreDisplay.textContent = this.score;
-        if (this.score > this.bestScore) {
-          this.bestScore = this.score;
-          localStorage.setItem('2048-best-score', this.bestScore);
-          this.updateScoreDisplay(false); // 游戏结束时不显示动画
-        }
-        openModal('gameOverModal');
-      }
-
-      // 核心移动处理函数
+      /**
+       * 处理方块移动
+       * @param {string} direction - 移动方向 ('up', 'down', 'left', 'right')
+       * @returns {Promise<boolean>} 是否成功移动
+       */
       async move(direction) {
-        if (this.gameOver || this.isProcessingMove) return false;
+        if (this.isProcessingMove) return false;
         
         this.isProcessingMove = true;
+        this.isAnimating = true;
         
         let moved = false;
         let scoreChanged = false;
@@ -956,9 +1208,10 @@
         }
 
         if (moved) {
-          // 只有分数变化时才显示动画
+          // 更新分数
           this.updateScoreDisplay(scoreChanged);
           
+          // 等待所有动画完成
           if (!gameSettings.disableAnimations && movePromises.length > 0) {
             await Promise.all(movePromises);
             await new Promise(resolve => requestAnimationFrame(resolve));
@@ -966,27 +1219,40 @@
           
           // 添加新方块
           this.addRandomTile();
+          
+          // 检查游戏是否结束
+          if (!this.canMove()) {
+            setTimeout(() => {
+              utils.showGameStatus('gameOver');
+            }, 300);
+          }
         }
 
-        // 关键修复：无论是否有移动，最终都检查是否可移动 → 不可移动则显示结束
+        // 检查游戏状态
         setTimeout(() => {
-          if (!this.canMove()) {
-            this.showGameOver();
-          }
-          this.isProcessingMove = false; // 移到判定后，避免动画未完成时触发新操作
+          this.isAnimating = false;
+          this.isProcessingMove = false;
         }, gameSettings.disableAnimations ? 0 : 300);
 
         return moved;
       }
 
-      // 处理单个方块移动
+      /**
+       * 处理单个方块的移动逻辑
+       * @param {number} x - 起始x坐标
+       * @param {number} y - 起始y坐标
+       * @param {number} dx - x方向增量
+       * @param {number} dy - y方向增量
+       * @param {Array<Promise>} movePromises - 动画Promise数组
+       * @returns {object} 移动结果 { moved: boolean, scoreChanged: boolean }
+       */
       processMove(x, y, dx, dy, movePromises) {
         let newX = x, newY = y;
         const value = this.grid[y][x];
         let moved = false;
         let scoreChanged = false;
         
-        // 移动到最远处
+        // 寻找可以移动到的最终位置
         while (
           newX + dx >= 0 && newX + dx < config.gridSize &&
           newY + dy >= 0 && newY + dy < config.gridSize &&
@@ -1003,36 +1269,37 @@
           newY + dy >= 0 && newY + dy < config.gridSize &&
           this.grid[newY + dy][newX + dx] === value
         ) {
-          // 合并方块
           const targetX = newX + dx;
           const targetY = newY + dy;
           this.grid[targetY][targetX] *= 2;
           this.score += this.grid[targetY][targetX];
           this.grid[y][x] = null;
           
+          // 处理合并动画
           if (!gameSettings.disableAnimations) {
             movePromises.push(this.animateTileMerge(x, y, targetX, targetY, this.grid[targetY][targetX]));
           } else {
-            // 移除原始方块
             const originalTile = document.querySelector(`.tile[data-x="${x}"][data-y="${y}"]`);
             if (originalTile) originalTile.remove();
-            
-            // 更新目标方块
             this.renderTile(targetX, targetY, this.grid[targetY][targetX], false, false);
           }
           
           moved = true;
           scoreChanged = true;
-        } else if (newX !== x || newY !== y) {
-          // 仅移动方块
+          
+          // 检查是否达到胜利条件
+          if (this.grid[targetY][targetX] === config.winningValue && !this.gameWon) {
+            this.gameWon = true;
+            setTimeout(() => utils.showGameStatus('won'), 500);
+          }
+        } 
+        // 处理单纯移动
+        else if (newX !== x || newY !== y) {
           if (!gameSettings.disableAnimations) {
             movePromises.push(this.animateTileMove(x, y, newX, newY));
           } else {
-            // 移除原始方块
             const originalTile = document.querySelector(`.tile[data-x="${x}"][data-y="${y}"]`);
             if (originalTile) originalTile.remove();
-            
-            // 在新位置渲染方块
             this.renderTile(newX, newY, value, false, false);
           }
           
@@ -1044,23 +1311,23 @@
         return { moved, scoreChanged };
       }
 
+      /**
+       * 动画：方块移动
+       * @param {number} fromX - 起始x坐标
+       * @param {number} fromY - 起始y坐标
+       * @param {number} toX - 目标x坐标
+       * @param {number} toY - 目标y坐标
+       * @returns {Promise} 动画完成Promise
+       */
       animateTileMove(fromX, fromY, toX, toY) {
         return new Promise(resolve => {
           const tile = document.querySelector(`.tile[data-x="${fromX}"][data-y="${fromY}"]`);
           if (tile) {
-            // 创建残影效果
-            const ghost = document.createElement('div');
-            ghost.classList.add('tile-move', `tile-${this.grid[fromY][fromX]}`);
-            ghost.style.width = `${this.tileSize}px`;
-            ghost.style.height = `${this.tileSize}px`;
-            ghost.style.left = `${this.boardPadding + fromX * (this.tileSize + this.tileGap)}px`;
-            ghost.style.top = `${this.boardPadding + fromY * (this.tileSize + this.tileGap)}px`;
-            dom.gameBoard.appendChild(ghost);
-            
+            // 计算目标位置
             const targetX = this.boardPadding + toX * (this.tileSize + this.tileGap);
             const targetY = this.boardPadding + toY * (this.tileSize + this.tileGap);
             
-            // 使用绝对定位而不是transform来移动方块
+            // 应用过渡动画
             tile.style.transition = 'left 0.2s ease, top 0.2s ease';
             tile.style.left = `${targetX}px`;
             tile.style.top = `${targetY}px`;
@@ -1069,7 +1336,7 @@
             tile.dataset.x = toX;
             tile.dataset.y = toY;
             
-            // 动画完成后清理
+            // 动画结束后清理
             setTimeout(() => {
               tile.style.transition = '';
               resolve();
@@ -1080,27 +1347,29 @@
         });
       }
 
+      /**
+       * 动画：方块合并
+       * @param {number} fromX - 起始x坐标
+       * @param {number} fromY - 起始y坐标
+       * @param {number} toX - 目标x坐标
+       * @param {number} toY - 目标y坐标
+       * @param {number} value - 合并后的值
+       * @returns {Promise} 动画完成Promise
+       */
       animateTileMerge(fromX, fromY, toX, toY, value) {
         return new Promise(resolve => {
           const tile = document.querySelector(`.tile[data-x="${fromX}"][data-y="${fromY}"]`);
           if (tile) {
-            // 创建残影效果
-            const ghost = document.createElement('div');
-            ghost.classList.add('tile-move', `tile-${this.grid[fromY][fromX]}`);
-            ghost.style.width = `${this.tileSize}px`;
-            ghost.style.height = `${this.tileSize}px`;
-            ghost.style.left = `${this.boardPadding + fromX * (this.tileSize + this.tileGap)}px`;
-            ghost.style.top = `${this.boardPadding + fromY * (this.tileSize + this.tileGap)}px`;
-            dom.gameBoard.appendChild(ghost);
-            
+            // 计算目标位置
             const targetX = this.boardPadding + toX * (this.tileSize + this.tileGap);
             const targetY = this.boardPadding + toY * (this.tileSize + this.tileGap);
             
-            // 使用绝对定位而不是transform来移动方块
+            // 应用过渡动画
             tile.style.transition = 'left 0.2s ease, top 0.2s ease';
             tile.style.left = `${targetX}px`;
             tile.style.top = `${targetY}px`;
             
+            // 动画结束后渲染合并后的方块
             setTimeout(() => {
               tile.remove();
               this.renderTile(toX, toY, value, false, true);
@@ -1112,7 +1381,12 @@
         });
       }
 
+      /**
+       * 窗口大小变化时重新调整
+       */
       handleResize() {
+        if (this.isAnimating) return;
+        
         this.calculateTileSize();
         this.renderGrid();
         for (let y = 0; y < config.gridSize; y++) {
@@ -1123,15 +1397,84 @@
           }
         }
       }
+
+      /**
+       * 胜利后继续游戏
+       */
+      resumeAfterWin() {
+        this.gameWon = false;
+      }
     }
 
-    // 事件处理和游戏启动
+    // --- 事件处理和初始化 ---
     document.addEventListener('DOMContentLoaded', () => {
-      const game = new Game2048();
+      // 初始化语言
+      utils.updateUI();
+      utils.getElements('.language-option').forEach(option => {
+        option.classList.toggle('active', option.dataset.lang === currentLanguage);
+      });
 
-      // 键盘输入处理
+      // 初始化游戏实例并保存到全局变量
+      const game = new Game2048();
+      window.game = game; // 保存到全局变量
+
+      // --- 语言切换事件 ---
+      utils.getElements('.language-option').forEach(option => {
+        option.addEventListener('click', () => {
+          currentLanguage = option.dataset.lang;
+          localStorage.setItem('2048-language', currentLanguage);
+          utils.getElements('.language-option').forEach(opt => opt.classList.remove('active'));
+          option.classList.add('active');
+          utils.updateUI();
+        });
+      });
+
+      // --- 主题切换功能 ---
+      game.dom.themeToggle = utils.getElement('#themeToggle');
+      const savedTheme = localStorage.getItem('2048-theme') || 'light';
+      document.documentElement.classList.toggle('dark', savedTheme === 'dark');
+      game.dom.themeToggle.checked = savedTheme === 'dark';
+      game.dom.themeToggle.addEventListener('change', function() {
+        document.documentElement.classList.toggle('dark', this.checked);
+        localStorage.setItem('2048-theme', this.checked ? 'dark' : 'light');
+      });
+
+      // --- 动画设置功能 ---
+      game.dom.disableAnimationsToggle = utils.getElement('#disableAnimationsToggle');
+      game.dom.disableAnimationsToggle.checked = gameSettings.disableAnimations;
+      game.dom.disableAnimationsToggle.addEventListener('change', function() {
+        gameSettings.disableAnimations = this.checked;
+        localStorage.setItem('2048-disable-animations', gameSettings.disableAnimations);
+      });
+
+      // --- 游戏难度设置功能 ---
+      game.dom.difficultySlider = utils.getElement('#difficultySlider');
+      game.dom.difficultyValue = utils.getElement('#difficultyValue');
+      game.dom.difficultySlider.value = gameSettings.difficulty;
+      
+      function updateDifficultyDisplay() {
+        const difficulty = parseInt(game.dom.difficultySlider.value);
+        let difficultyKey = '';
+        switch(difficulty) {
+          case 1: difficultyKey = 'difficultyEasy'; break;
+          case 2: difficultyKey = 'difficultyMedium'; break;
+          case 3: difficultyKey = 'difficultyHard'; break;
+        }
+        game.dom.difficultyValue.textContent = translations[currentLanguage][difficultyKey];
+      }
+      
+      updateDifficultyDisplay();
+      game.dom.difficultySlider.addEventListener('input', updateDifficultyDisplay);
+      game.dom.difficultySlider.addEventListener('change', function() {
+        gameSettings.difficulty = parseInt(this.value);
+        localStorage.setItem('2048-difficulty', gameSettings.difficulty);
+        // 重置游戏以应用新难度
+        game.init();
+      });
+
+      // --- 键盘输入处理 ---
       function handleKeydown(e) {
-        if (game.gameOver) return;
+        // 阻止方向键和WASD键的默认滚动行为
         if ([37, 38, 39, 40, 87, 65, 83, 68].includes(e.keyCode)) {
           e.preventDefault();
         }
@@ -1143,19 +1486,16 @@
         }
       }
       
-      // 触摸输入处理
+      // --- 触摸输入处理 ---
       let touchStartX = 0;
       let touchStartY = 0;
       let touchStartTime = 0;
       let touchTimeout = null;
       
       function handleTouchStart(e) {
-        if (game.gameOver) return;
         touchStartX = e.touches[0].clientX;
         touchStartY = e.touches[0].clientY;
         touchStartTime = Date.now();
-        
-        // 防止快速连续触摸
         if (touchTimeout) clearTimeout(touchTimeout);
       }
       
@@ -1164,15 +1504,14 @@
       }
       
       function handleTouchEnd(e) {
-        if (game.gameOver) return;
         const touchEndX = e.changedTouches[0].clientX;
         const touchEndY = e.changedTouches[0].clientY;
         const dx = touchEndX - touchStartX;
         const dy = touchEndY - touchStartY;
         const duration = Date.now() - touchStartTime;
-        const threshold = Math.max(20, Math.min(50, dom.gameContainer.clientWidth * 0.1));
+        const threshold = Math.max(20, Math.min(50, game.dom.gameContainer.clientWidth * 0.1));
         
-        // 仅当滑动距离超过阈值时才处理
+        // 判断滑动方向
         if (Math.abs(dx) > Math.abs(dy)) {
           if (dx > threshold) {
             game.move('right');
@@ -1187,63 +1526,40 @@
           }
         }
         
-        // 设置触摸间隔，防止快速连续触摸
+        // 防止短时间内多次触发
         touchTimeout = setTimeout(() => {
           touchTimeout = null;
         }, gameSettings.disableAnimations ? 0 : 200);
       }
-      
-      // 模态框控制
-      function openModal(modalId) {
-        const modal = document.getElementById(modalId);
-        if (modal) {
-          modal.classList.add('active');
-          if (modalId === 'settingsModal') {
-            setupThemeToggle();
-            setupAnimationRenderingToggles();
-            setupDifficultySlider();
-          }
-        }
-      }
-      
-      function closeModal(modalId) {
-        const modal = document.getElementById(modalId);
-        if (modal) {
-          modal.classList.remove('active');
-          setTimeout(() => dom.gameContainer.focus(), 300);
-        }
-      }
 
-      // 事件绑定
+      // --- 事件绑定 ---
       window.addEventListener('resize', () => game.handleResize());
       document.addEventListener('keydown', handleKeydown);
-      dom.gameContainer.addEventListener('touchstart', handleTouchStart);
-      dom.gameContainer.addEventListener('touchmove', handleTouchMove, { passive: false });
-      dom.gameContainer.addEventListener('touchend', handleTouchEnd);
-      dom.restartBtn.addEventListener('click', () => game.init());
-      dom.tryAgainBtn.addEventListener('click', () => {
-          closeModal('gameOverModal');
-          game.init();
-      });
-      dom.howToPlayBtn.addEventListener('click', () => openModal('howToPlayModal'));
-      dom.closeHowToPlayModalBtn.addEventListener('click', () => closeModal('howToPlayModal'));
-      dom.startPlayingBtn.addEventListener('click', () => closeModal('howToPlayModal'));
-      dom.howToPlayModal.addEventListener('click', (e) => {
-        if (e.target === dom.howToPlayModal) {
-          closeModal('howToPlayModal');
+      
+      // 触摸事件
+      game.dom.gameContainer.addEventListener('touchstart', handleTouchStart);
+      game.dom.gameContainer.addEventListener('touchmove', handleTouchMove, { passive: false });
+      game.dom.gameContainer.addEventListener('touchend', handleTouchEnd);
+      
+      // 游戏控制按钮
+      game.dom.restartBtn.addEventListener('click', () => game.init());
+      
+      // 模态框控制
+      game.dom.howToPlayBtn.addEventListener('click', () => utils.openModal('howToPlayModal'));
+      game.dom.closeHowToPlayModalBtn.addEventListener('click', () => utils.closeModal('howToPlayModal'));
+      game.dom.startPlayingBtn.addEventListener('click', () => utils.closeModal('howToPlayModal'));
+      game.dom.howToPlayModal.addEventListener('click', (e) => {
+        if (e.target === game.dom.howToPlayModal) {
+          utils.closeModal('howToPlayModal');
         }
       });
-      dom.settingsBtn.addEventListener('click', () => openModal('settingsModal'));
-      dom.closeSettingsModalBtn.addEventListener('click', () => closeModal('settingsModal'));
-      dom.closeSettingsBtn.addEventListener('click', () => closeModal('settingsModal'));
-      dom.settingsModal.addEventListener('click', (e) => {
-        if (e.target === dom.settingsModal) {
-          closeModal('settingsModal');
-        }
-      });
-      dom.gameOverModal.addEventListener('click', (e) => {
-        if (e.target === dom.gameOverModal) {
-          closeModal('gameOverModal');
+      
+      game.dom.settingsBtn.addEventListener('click', () => utils.openModal('settingsModal'));
+      game.dom.closeSettingsModalBtn.addEventListener('click', () => utils.closeModal('settingsModal'));
+      game.dom.closeSettingsBtn.addEventListener('click', () => utils.closeModal('settingsModal'));
+      game.dom.settingsModal.addEventListener('click', (e) => {
+        if (e.target === game.dom.settingsModal) {
+          utils.closeModal('settingsModal');
         }
       });
     });
